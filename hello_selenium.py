@@ -11,13 +11,14 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 import datetime
 import time
+import creds as cred
 from setup import *
 
 RATE_LIMIT = 1
 IMPLICIT_WAIT = 30
 
-PATH = "C:\Program Files (x86)\chromedriver.exe"
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()))
+PATH = "/usr/local/bin/chromedriver"
+driver = webdriver.Chrome(PATH)
 driver.get("https://uerm.pdshis.website/patients/1ed3dd55-3cfc-642a-a8ab-06804c000428")
 wait = WebDriverWait(driver,20)
 
@@ -180,19 +181,19 @@ def change_resident(new_resident):
     time.sleep(RATE_LIMIT)
     new_resident = new_resident.lower()
     if 'ledesma' in new_resident:
-        
+        resident_login(cred.rozy_user,cred.rozy_pass)
         time.sleep(RATE_LIMIT)
     elif 'lim' in new_resident:
-        
+        resident_login(cred.jay_user,cred.jay_pass)
         time.sleep(RATE_LIMIT)
     elif 'miranda' in new_resident:
-        
+        resident_login(cred.car_user,cred.car_pass)
         time.sleep(RATE_LIMIT)
     elif 'salamanca' in new_resident:
-        
+        resident_login(cred.sacha_user,cred.sacha_pass)
         time.sleep(RATE_LIMIT)
     elif 'tee' in new_resident:
-        
+        resident_login(cred.marg_user,cred.marg_pass)
         time.sleep(RATE_LIMIT)
         
 
@@ -200,6 +201,7 @@ def change_resident(new_resident):
 def main():
     start = time.time()
     
+    resident_login(cred.rozy_user,cred.rozy_pass)
     attending_resident = 'Ledesma'
 
     for index, patient in df.iterrows():

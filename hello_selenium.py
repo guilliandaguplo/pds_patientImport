@@ -62,6 +62,8 @@ def new_patient(patient):
         f_button.click()
     create_patient = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/main/div/div/div[2]/button[2]')))
     create_patient.click()
+
+def check_exists_by_xpath(xpath):
     try:
         driver.find_element(By.XPATH,xpath)
     except NoSuchElementException:

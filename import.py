@@ -9,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from webdriver_manager.chrome import ChromeDriverManager
-import datetime
+from datetime import datetime
 import time
 import creds as cred
 from setup import *
@@ -71,22 +71,32 @@ def check_exists_by_xpath(xpath):
         return False
     return True   
 
+def choose_date(patient, desired_date):
+    patient['visit_date'] = pd.to_datetime(df['visit_date'])
+    desired_date = desired_date.strftime('%b %d, %Y')
+    date_field = wait.until(EC.presence_of_element_located((By.ID,'visit_date')))
+    wait.until(EC.element_to_be_clickable((By.ID,'visit_date')))
+    chosen_date = date_field.get_attribute("value")
+    while desired_date not in str(chosen_date):
+        time.sleep(RATE_LIMIT)
+        date_field.click()
+        time.sleep(RATE_LIMIT)
+        date_field.clear()
+        time.sleep(RATE_LIMIT)
+        date_field.send_keys(patient['converted_date'] + Keys.ENTER)
+        chosen_date = date_field.get_attribute('value')
+        chosen_date = datetime.strptime(chosen_date,'%b %d, %Y')
+        chosen_date = chosen_date.strftime('%b %d, %Y')
+        time.sleep(RATE_LIMIT)
+    
+    
 def new_visit(patient):
 # TO DO - add waits to ensure that fields are found before we interact we them. MAKE SURE TO ADD EXPLICIT WAITS
     wait.until(EC.invisibility_of_element((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[1]/div')))
     driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/main/div/div[1]/div[2]/button"))))
 
-    time.sleep(RATE_LIMIT)
-    patient['visit_date'] = pd.to_datetime(df['visit_date'])
-    date_field = wait.until(EC.element_to_be_clickable((By.ID,'visit_date')))
-    date_field.click()
-    time.sleep(RATE_LIMIT)
-    date_field.clear()
-    time.sleep(RATE_LIMIT)
-    date_field.send_keys(patient['converted_date'])
-    time.sleep(RATE_LIMIT)
-    date_field.send_keys(Keys.ENTER)
-    time.sleep(RATE_LIMIT)
+    choose_date(patient, patient['visit_date'])
+
 
     if(patient['location'] == 'TD'):
         clinic = Select(wait.until(EC.element_to_be_clickable((By.ID,'clinic'))))
@@ -105,10 +115,10 @@ def new_visit(patient):
     time.sleep(RATE_LIMIT)
     add_dx(patient)
 
-    finalize_visit = driver.find_element(By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[2]/button[2]')
-    finalize_visit.click()
-    # cancel_visit = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[2]/button[1]')))
-    # cancel_visit.click()
+    # finalize_visit = driver.find_element(By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[2]/button[2]')
+    # finalize_visit.click()
+    cancel_visit = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[2]/button[1]')))
+    cancel_visit.click()
 
 def addDx_helper(dx,options):
     for count,option in enumerate(options):
@@ -215,16 +225,13 @@ def main():
         else:
             patient_resident[:patient_resident.find(',')]
             # print('returned'+patient_resident)
-
-           
-
+            
         if not patient['onboarded']:
             if (attending_resident not in patient_resident):
                 attending_resident = patient_resident
-                change_resident(attending_resident)
-                time.sleep(RATE_LIMIT)
+                # change_resident(attending_resident)
             time.sleep(RATE_LIMIT)
-            new_patient(patient)
+            # new_patient(patient)
             new_visit(patient)
             time.sleep(RATE_LIMIT)
             patient['onboarded'] == True

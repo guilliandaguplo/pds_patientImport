@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import xlrd
 # Set what excel sheet is read
-xlsx = "patient_set.xlsx"
+xlsx = "to_import/patient_set.xlsx"
 # Set used columns and skip to the first patient
 df = pd.read_excel(xlsx, sheet_name=0,usecols="B:E,G:H,K,L,M,N,P,Q,S,T",skiprows=4)
 # Replace column names

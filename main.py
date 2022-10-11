@@ -1,41 +1,30 @@
 
-from selenium import webdriver
 from selenium.webdriver.support.select import Select
-from selenium.webdriver.chrome.service import Service
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait   
 from selenium.webdriver.support import expected_conditions as EC
-
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
 from webdriver_manager.chrome import ChromeDriverManager
+
 from datetime import datetime
 import time
-import creds as cred
+from creds import *
 from setup import *
 
 RATE_LIMIT = 1
 IMPLICIT_WAIT = 30
 
-PATH = "/usr/local/bin/chromedriver"
+PATH = '/usr/local/bin/chromedriver'
 driver = webdriver.Chrome(PATH)
 driver.get("https://uerm.pdshis.website/patients/1ed3dd55-3cfc-642a-a8ab-06804c000428")
 wait = WebDriverWait(driver,20)
 
 
 
-def resident_login(email, password):
-    email_field = wait.until(EC.presence_of_element_located((By.ID, 'email')))
-    email_field.send_keys(email)
-    wait.until(EC.text_to_be_present_in_element_value((By.ID, 'email'),email))
-  
-    pass_field = wait.until(EC.presence_of_element_located((By.ID, 'password')))
-    pass_field.send_keys(password)
-    wait.until(EC.text_to_be_present_in_element_value((By.ID, 'password'),password))
-    
-    login_button = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div/div/div[2]/form/div[4]/button')))
-    login_button.click()
-    # time.sleep(RATE_LIMIT)
+
 
 def new_patient(patient):
     addPatient = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[1]/div[4]/a')))
@@ -127,22 +116,22 @@ def addDx_helper(dx,options):
             option.click()
         if count == len(options)-1:
             option.click()
-# TO DO modify add_dx to make it more robust, add checks to make sure fields are filled and add methods to retry when it fails
+
 def add_dx(patient):
     # condition will check if the first diagnosis is already added
     condition = check_exists_by_xpath('//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/label')
-    print(f'"Diagnosis 1 on page": {condition}')
-
+    # print(f'"Diagnosis 1 on page": {condition}')
     if not condition:
         add_dx = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/button')))
         add_dx.click()
+        
     dx_field = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[2]/input')))
     dx_field.send_keys(patient['Dx1'])
     create_dx = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[2]/div/ul')))
     options = create_dx.find_elements(By.TAG_NAME,'li')
     addDx_helper(patient['Dx1'],options)
-
     create_dx.click()
+    
     if 'ff' in patient['status_1']:
         dx_type = wait.until(EC.element_to_be_clickable((By.ID,'diagnoses.0.diagnosis_type_ffup')))
         time.sleep(RATE_LIMIT)
@@ -175,61 +164,40 @@ def add_dx(patient):
             dx_type.click()
     time.sleep(RATE_LIMIT)
 
-
-# TO DO  
-# Modify rate limit to test request limit
-# test the program on example patient
-
-
+def resident_login(resident):
+    email_field = wait.until(EC.presence_of_element_located((By.ID, 'email')))
+    email_field.send_keys(resident.email)
+    wait.until(EC.text_to_be_present_in_element_value((By.ID, 'email'),resident.email))
+  
+    pass_field = wait.until(EC.presence_of_element_located((By.ID, 'password')))
+    pass_field.send_keys(resident.password)
+    wait.until(EC.text_to_be_present_in_element_value((By.ID, 'password'),resident.password))
+    
+    login_button = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div/div/div[2]/form/div[4]/button')))
+    login_button.click()
+    
 def change_resident(new_resident):
     # log out of current resident
-    dropdown = wait.until(EC.presence_of_element_located((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[1]/span/button')))
-    dropdown.click()
-
-    logout_button = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[2]/div/form/a')))
-    logout_button.click()
-    time.sleep(RATE_LIMIT)
-    new_resident = new_resident.lower()
-    if 'ledesma' in new_resident:
-        resident_login(cred.rozy_user,cred.rozy_pass)
+    if check_exists_by_xpath('/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[1]/span/button'):
+        dropdown = wait.until(EC.presence_of_element_located((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[1]/span/button')))
+        dropdown.click()
+        logout_button = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[2]/div/form/a')))
+        logout_button.click()
         time.sleep(RATE_LIMIT)
-    elif 'lim' in new_resident:
-        resident_login(cred.jay_user,cred.jay_pass)
-        time.sleep(RATE_LIMIT)
-    elif 'miranda' in new_resident:
-        resident_login(cred.car_user,cred.car_pass)
-        time.sleep(RATE_LIMIT)
-    elif 'salamanca' in new_resident:
-        resident_login(cred.sacha_user,cred.sacha_pass)
-        time.sleep(RATE_LIMIT)
-    elif 'tee' in new_resident:
-        resident_login(cred.marg_user,cred.marg_pass)
-        time.sleep(RATE_LIMIT)
+    resident_login(new_resident)
         
 
 
 def main():
     start = time.time()
-    
-    resident_login(cred.rozy_user,cred.rozy_pass)
-    attending_resident = 'Ledesma'
+    attending_resident = Rozy
 
     for index, patient in df.iterrows():
-        patient_resident = patient['resident']
-        # print('processing'+patient_resident)
-        # Decide patient resident
-        if patient_resident.find('/'):
-            patient_resident = patient_resident[patient_resident.find('/')+1:]
-            patient_resident = patient_resident[:patient_resident.find(',')]
-            # print('returned'+patient_resident)
-        else:
-            patient_resident[:patient_resident.find(',')]
-            # print('returned'+patient_resident)
-            
+        patient_resident = get_resident(patient['resident'])
         if not patient['onboarded']:
-            if (attending_resident not in patient_resident):
+            if (attending_resident.last not in patient_resident.last):
                 attending_resident = patient_resident
-                # change_resident(attending_resident)
+                change_resident(attending_resident)
             time.sleep(RATE_LIMIT)
             # new_patient(patient)
             new_visit(patient)
@@ -243,9 +211,3 @@ def main():
 if __name__ == '__main__':
     main()
     
-
-
-        
-    
-
-   

@@ -14,45 +14,54 @@ import time
 from creds import *
 from setup import *
 
-RATE_LIMIT = 1
+RATE_LIMIT = 1.5
 IMPLICIT_WAIT = 30
+INITIAL_WAIT = 0
 
 PATH = '/usr/local/bin/chromedriver'
 driver = webdriver.Chrome(PATH)
+# driver.get("https://uerm.pdshis.website/login")
+"""FOR PATIENT TESTING"""
 driver.get("https://uerm.pdshis.website/patients/1ed3dd55-3cfc-642a-a8ab-06804c000428")
 wait = WebDriverWait(driver,20)
 
-
-
-
-
 def new_patient(patient):
-    addPatient = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[1]/div[4]/a')))
+    #time.sleep(INITIAL_WAIT)
+    addPatient = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/main/div/div[1]/div[2]/button')))
     addPatient.click()
-
-    lName_field = wait.until(EC.text_to_be_present_in_element_value((By.ID,'lastname'),patient['last_name']))
+    
+    lName_field = wait.until(EC.visibility_of_element_located((By.ID,'lastname')))
     lName_field.send_keys(patient['last_name'])
+    wait.until(EC.text_to_be_present_in_element_value((By.ID,'lastname'),patient['last_name']))
 
-    fName_field = wait.until(EC.text_to_be_present_in_element_value((By.ID,'firstname'),patient['first_name']))
+    fName_field = wait.until(EC.visibility_of_element_located((By.ID,'firstname')))
     fName_field.send_keys(patient['first_name'])
-
-    current_day = datetime.datetime.now()
+    wait.until(EC.text_to_be_present_in_element_value((By.ID,'firstname'),patient['first_name']))
+    
+    current_day = datetime.now()
     current_year = current_day.strftime("%Y")
     birthday_field = wait.until(EC.presence_of_element_located((By.ID,'year_of_birth')))
-    if 'mos' not in patient['age']:
-        birthday_field.send_keys(int(current_year) - int(patient['age']))
-    else:
-        birthday_field.send_keys(int(current_year))
     
+    try:
+        if 'mo' not in str(patient['age']).lower():
+            birthday_field.send_keys(int(current_year) - int(patient['age']))
+        else:
+            birthday_field.send_keys(int(current_year) - 1)
+    except ValueError:
+            birthday_field.send_keys(int(current_year) - 1)
+        
     if patient['sex'] == 'M' or patient['sex'] == 'm':
         m_button = wait.until(EC.element_to_be_clickable((By.XPATH, '//*[@id="male"]')))
         m_button.click()
     else:
         f_button = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="female"]')))
         f_button.click()
-    create_patient = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/main/div/div/div[2]/button[2]')))
-    create_patient.click()
-
+        
+    create_patient = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="15a0b5091bb0b1f8772d34f29ca65097"]/div[2]/div[2]/button[2]')))
+    cancel_patient = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="15a0b5091bb0b1f8772d34f29ca65097"]/div[2]/div[2]/button[1]')))
+    # create_patient.click()
+    cancel_patient.click()
+    
 def check_exists_by_xpath(xpath):
     try:
         driver.find_element(By.XPATH,xpath)
@@ -61,31 +70,28 @@ def check_exists_by_xpath(xpath):
     return True   
 
 def choose_date(patient, desired_date):
+    #time.sleep(INITIAL_WAIT)
     patient['visit_date'] = pd.to_datetime(df['visit_date'])
     desired_date = desired_date.strftime('%b %d, %Y')
-    date_field = wait.until(EC.presence_of_element_located((By.ID,'visit_date')))
-    wait.until(EC.element_to_be_clickable((By.ID,'visit_date')))
+    date_field = wait.until(EC.visibility_of_element_located((By.ID,'visit_date')))
     chosen_date = date_field.get_attribute("value")
     while desired_date not in str(chosen_date):
-        time.sleep(RATE_LIMIT)
+        #time.sleep(RATE_LIMIT)
         date_field.click()
-        time.sleep(RATE_LIMIT)
+        #time.sleep(RATE_LIMIT)
         date_field.clear()
-        time.sleep(RATE_LIMIT)
+        #time.sleep(RATE_LIMIT)
         date_field.send_keys(patient['converted_date'] + Keys.ENTER)
         chosen_date = date_field.get_attribute('value')
         chosen_date = datetime.strptime(chosen_date,'%b %d, %Y')
         chosen_date = chosen_date.strftime('%b %d, %Y')
-        time.sleep(RATE_LIMIT)
-    
-    
+        #time.sleep(RATE_LIMIT)
+  
 def new_visit(patient):
-# TO DO - add waits to ensure that fields are found before we interact we them. MAKE SURE TO ADD EXPLICIT WAITS
-    wait.until(EC.invisibility_of_element((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[1]/div')))
-    driver.execute_script("arguments[0].click();", wait.until(EC.presence_of_element_located((By.XPATH, "/html/body/div[2]/main/div/div[1]/div[2]/button"))))
-
+    #time.sleep(INITIAL_WAIT)
+    driver.execute_script("arguments[0].click();", wait.until(EC.element_to_be_clickable((By.XPATH, "/html/body/div[2]/main/div/div[1]/div[2]/button"))))
+    wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]')))
     choose_date(patient, patient['visit_date'])
-
 
     if(patient['location'] == 'TD'):
         clinic = Select(wait.until(EC.element_to_be_clickable((By.ID,'clinic'))))
@@ -101,13 +107,14 @@ def new_visit(patient):
             # print(f'Chosen Consultant: {choice.text}')
             # print(f'IS::SELECTED {choice.is_selected()}')
     
-    time.sleep(RATE_LIMIT)
+    #time.sleep(RATE_LIMIT)
     add_dx(patient)
 
     # finalize_visit = driver.find_element(By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[2]/button[2]')
     # finalize_visit.click()
     cancel_visit = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[2]/button[1]')))
     cancel_visit.click()
+    wait.until(EC.invisibility_of_element((By.XPATH,'/html/body/div[3]')))
 
 def addDx_helper(dx,options):
     for count,option in enumerate(options):
@@ -119,50 +126,59 @@ def addDx_helper(dx,options):
 
 def add_dx(patient):
     # condition will check if the first diagnosis is already added
-    condition = check_exists_by_xpath('//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/label')
-    # print(f'"Diagnosis 1 on page": {condition}')
+    time.sleep(RATE_LIMIT)
+    condition = check_exists_by_xpath('//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[2]/input')
+    print(f'"Diagnosis 1 on page": {condition}')
     if not condition:
         add_dx = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/button')))
         add_dx.click()
         
-    dx_field = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[2]/input')))
+    dx_field = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[2]/input')))
     dx_field.send_keys(patient['Dx1'])
-    create_dx = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[2]/div/ul')))
-    options = create_dx.find_elements(By.TAG_NAME,'li')
+    dx_options = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[2]/div/ul')))
+    options = dx_options.find_elements(By.TAG_NAME,'li')
     addDx_helper(patient['Dx1'],options)
-    create_dx.click()
-    
-    if 'ff' in patient['status_1']:
+    wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[7]/div[1]/button[1]')))
+
+
+    if 'ff' in str(patient['status_1']).lower():
+        wait.until(EC.visibility_of_element_located((By.ID,'diagnoses.0.diagnosis_type_ffup')))
         dx_type = wait.until(EC.element_to_be_clickable((By.ID,'diagnoses.0.diagnosis_type_ffup')))
-        time.sleep(RATE_LIMIT)
+        #time.sleep(RATE_LIMIT)
         dx_type.click()
 
     if pd.notna(patient['Dx2']):
         add_dx = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[10]/button')))
         add_dx.click()
-        dx_field = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[10]/div[2]/input')))
+        dx_field = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[10]/div[2]/input')))
         dx_field.send_keys(patient['Dx2'])
         create_dx = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[10]/div[2]/div/ul')))
         options = create_dx.find_elements(By.TAG_NAME,'li')
         addDx_helper(patient['Dx2'],options)
-        if 'ff' in patient['status_2']:
+        wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[10]/div[1]/button[1]')))
+        
+        if 'ff' in str(patient['status_2']).lower():
+            wait.until(EC.visibility_of_element_located((By.ID,'diagnoses.1.diagnosis_type_ffup')))
             dx_type = wait.until(EC.element_to_be_clickable((By.ID,'diagnoses.1.diagnosis_type_ffup')))
-            time.sleep(RATE_LIMIT)
+            #time.sleep(RATE_LIMIT)
             dx_type.click()
 
     if pd.notna(patient['Dx3']):
         add_dx = wait.until(EC.element_to_be_clickable((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[13]/button')))
         add_dx.click()
-        dx_field = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[13]/div[2]/input')))
+        dx_field = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[13]/div[2]/input')))
         dx_field.send_keys(patient['Dx3'])
-        create_dx = wait.until(EC.presence_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[13]/div[2]/div/ul')))
+        create_dx = wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[13]/div[2]/div/ul')))
         options = create_dx.find_elements(By.TAG_NAME,'li')
         addDx_helper(patient['Dx3'],options)
-        if 'ff' in patient['status_3']:
+        wait.until(EC.visibility_of_element_located((By.XPATH,'//*[@id="919e06c4ea7e2a5bb720134d693a8671"]/div[2]/div[1]/div[2]/div/form/div/div/div[13]/div[1]/button[1]')))
+        
+        if 'ff' in str(patient['status_3']).lower():
+            wait.until(EC.visibility_of_element_located((By.ID,'diagnoses.2.diagnosis_type_ffup')))
             dx_type = wait.until(EC.element_to_be_clickable((By.ID,'diagnoses.2.diagnosis_type_ffup')))
-            time.sleep(RATE_LIMIT)
+            #time.sleep(RATE_LIMIT)
             dx_type.click()
-    time.sleep(RATE_LIMIT)
+    # time.sleep(RATE_LIMIT)
 
 def resident_login(resident):
     email_field = wait.until(EC.presence_of_element_located((By.ID, 'email')))
@@ -178,31 +194,31 @@ def resident_login(resident):
     
 def change_resident(new_resident):
     # log out of current resident
+    #time.sleep(INITIAL_WAIT)
     if check_exists_by_xpath('/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[1]/span/button'):
         dropdown = wait.until(EC.presence_of_element_located((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[1]/span/button')))
         dropdown.click()
         logout_button = wait.until(EC.element_to_be_clickable((By.XPATH,'/html/body/div[2]/nav/div[1]/div/div[2]/div/div/div[2]/div/form/a')))
         logout_button.click()
-        time.sleep(RATE_LIMIT)
     resident_login(new_resident)
         
-
-
 def main():
     start = time.time()
-    attending_resident = Rozy
-
+    attending_resident = DEFAULT
+    resident_login(Rozy)
     for index, patient in df.iterrows():
         patient_resident = get_resident(patient['resident'])
-        if not patient['onboarded']:
-            if (attending_resident.last not in patient_resident.last):
-                attending_resident = patient_resident
-                change_resident(attending_resident)
-            time.sleep(RATE_LIMIT)
+        # if (attending_resident.last not in patient_resident.last):
+        #     attending_resident = patient_resident
+        #     time.sleep(RATE_LIMIT)
+        #     change_resident(attending_resident)
+        if not patient['onboarded'] and pd.notna(patient['last_name']):
             # new_patient(patient)
+            # time.sleep(RATE_LIMIT)
             new_visit(patient)
             time.sleep(RATE_LIMIT)
             patient['onboarded'] == True
+     
 
     end = time.time()
     print('Script finished in ', time.strftime("%H:%M:%S",time.gmtime(end-start)))

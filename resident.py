@@ -4,3 +4,4 @@ class Resident:
         self.last = last
         self.email = email
         self.password = password
+
